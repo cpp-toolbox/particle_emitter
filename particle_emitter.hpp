@@ -44,14 +44,17 @@ class ParticleEmitter {
 
     void update(float delta_time, glm::mat4 world_to_clip);
 
-    std::vector<Particle> get_particles_sorted_by_distance();
+    void stop_emitting_particles();
+    void resume_emitting_particles();
 
+    std::vector<Particle> get_particles_sorted_by_distance();
     std::vector<Particle> particles;
 
   private:
     unsigned int max_particles;
     unsigned int last_used_particle;
     float time_since_last_spawn;
+    bool currently_producing_particles = true;
 
     std::function<float()> lifespan_func;
     std::function<glm::vec3()> initial_velocity_func;

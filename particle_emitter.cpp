@@ -49,10 +49,13 @@ void ParticleEmitter::update(float delta_time, glm::mat4 world_to_clip) {
     time_since_last_spawn += delta_time;
 
     float spawn_delay = spawn_delay_func();
-    if (time_since_last_spawn >= spawn_delay) {
-        unsigned int unused_particle = find_unused_particle();
-        respawn_particle(particles[unused_particle]);
-        time_since_last_spawn = 0.0f; // Reset spawn timer
+
+    if (currently_producing_particles) {
+        if (time_since_last_spawn >= spawn_delay) {
+            unsigned int unused_particle = find_unused_particle();
+            respawn_particle(particles[unused_particle]);
+            time_since_last_spawn = 0.0f; // Reset spawn timer
+        }
     }
 
     for (Particle &particle : particles) {
@@ -61,6 +64,9 @@ void ParticleEmitter::update(float delta_time, glm::mat4 world_to_clip) {
         }
     }
 }
+
+void ParticleEmitter::stop_emitting_particles() { currently_producing_particles = false; }
+void ParticleEmitter::resume_emitting_particles() { currently_producing_particles = true; }
 
 std::vector<Particle> ParticleEmitter::get_particles_sorted_by_distance() {
     std::vector<Particle> sorted_particles = particles;
