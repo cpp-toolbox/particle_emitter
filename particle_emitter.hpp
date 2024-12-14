@@ -12,7 +12,7 @@ class Particle {
   public:
     Particle(float lifespan_seconds, const glm::vec3 &initial_velocity,
              std::function<glm::vec3(float, float)> velocity_change_func, std::function<float(float)> scaling_func,
-             std::function<float(float)> rotation_func);
+             std::function<float(float)> rotation_func, Transform emitter_transform);
 
     void update(float delta_time, glm::mat4 world_to_clip);
 
@@ -21,6 +21,7 @@ class Particle {
     bool is_alive() const;
 
     Transform transform;
+    Transform emitter_transform;
 
   private:
     float distance_to_camera;
@@ -40,7 +41,7 @@ class ParticleEmitter {
     ParticleEmitter(std::function<float()> lifespan_func, std::function<glm::vec3()> initial_velocity_func,
                     std::function<glm::vec3(float, float)> velocity_change_func,
                     std::function<float(float)> scaling_func, std::function<float(float)> rotation_func,
-                    std::function<float()> spawn_delay_func, unsigned int max_particles);
+                    std::function<float()> spawn_delay_func, unsigned int max_particles, Transform initial_transform);
 
     void update(float delta_time, glm::mat4 world_to_clip);
 

@@ -2,10 +2,12 @@
 
 Particle::Particle(float lifespan_seconds, const glm::vec3 &initial_velocity,
                    std::function<glm::vec3(float, float)> velocity_change_func,
-                   std::function<float(float)> scaling_func, std::function<float(float)> rotation_func)
+                   std::function<float(float)> scaling_func, std::function<float(float)> rotation_func,
+                   Transform emitter_transform)
     : lifespan_seconds(lifespan_seconds), age_seconds(0.0), velocity(initial_velocity),
-      character_velocity_change_function(velocity_change_func), character_scaling_function(scaling_func),
-      character_rotation_degrees_function(rotation_func), transform(Transform()) {
+      emitter_transform(emitter_transform), character_velocity_change_function(velocity_change_func),
+      character_scaling_function(scaling_func), character_rotation_degrees_function(rotation_func),
+      transform(Transform()) {
     transform.scale = glm::vec3(character_scaling_function(0.0f));
 }
 
@@ -33,15 +35,19 @@ bool Particle::is_alive() const { return age_seconds < lifespan_seconds; }
 ParticleEmitter::ParticleEmitter(std::function<float()> lifespan_func, std::function<glm::vec3()> initial_velocity_func,
                                  std::function<glm::vec3(float, float)> velocity_change_func,
                                  std::function<float(float)> scaling_func, std::function<float(float)> rotation_func,
-                                 std::function<float()> spawn_delay_func, unsigned int max_particles)
+                                 std::function<float()> spawn_delay_func, unsigned int max_particles,
+                                 Transform initial_transform)
     : lifespan_func(lifespan_func), initial_velocity_func(initial_velocity_func),
       velocity_change_func(velocity_change_func), scaling_func(scaling_func), rotation_func(rotation_func),
       spawn_delay_func(spawn_delay_func), max_particles(max_particles), last_used_particle(0),
       time_since_last_spawn(0.0f) {
 
+    transform = initial_transform;
+
     particles.reserve(max_particles);
     for (unsigned int i = 0; i < max_particles; ++i) {
-        particles.emplace_back(0, initial_velocity_func(), velocity_change_func, scaling_func, rotation_func);
+        particles.emplace_back(0, initial_velocity_func(), velocity_change_func, scaling_func, rotation_func,
+                               transform);
     }
 }
 
@@ -97,6 +103,6 @@ void ParticleEmitter::respawn_particle(Particle &particle) {
     float lifespan = lifespan_func();
     glm::vec3 velocity = initial_velocity_func();
 
-    particle = Particle(lifespan, velocity, velocity_change_func, scaling_func, rotation_func);
+    particle = Particle(lifespan, velocity, velocity_change_func, scaling_func, rotation_func, transform);
     particle.transform.position = transform.position;
 }
