@@ -3,15 +3,16 @@
 Particle::Particle(float lifespan_seconds, const glm::vec3 &initial_velocity,
                    std::function<glm::vec3(float, float)> velocity_change_func,
                    std::function<float(float)> scaling_func, std::function<float(float)> rotation_func,
-                   Transform emitter_transform)
+                   Transform &emitter_transform, int id)
     : lifespan_seconds(lifespan_seconds), age_seconds(0.0), velocity(initial_velocity),
       emitter_transform(emitter_transform), character_velocity_change_function(velocity_change_func),
       character_scaling_function(scaling_func), character_rotation_degrees_function(rotation_func),
-      transform(Transform()) {
+      transform(Transform()), id(id) {
     transform.scale = glm::vec3(character_scaling_function(0.0f));
 }
 
 void Particle::update(float delta_time, glm::mat4 world_to_clip) {
+
     age_seconds += delta_time;
     float life_percentage = age_seconds / lifespan_seconds;
 
@@ -46,12 +47,13 @@ ParticleEmitter::ParticleEmitter(std::function<float()> lifespan_func, std::func
 
     particles.reserve(max_particles);
     for (unsigned int i = 0; i < max_particles; ++i) {
-        particles.emplace_back(0, initial_velocity_func(), velocity_change_func, scaling_func, rotation_func,
-                               transform);
+        particles.emplace_back(0, initial_velocity_func(), velocity_change_func, scaling_func, rotation_func, transform,
+                               UniqueIDGenerator::generate());
     }
 }
 
 void ParticleEmitter::update(float delta_time, glm::mat4 world_to_clip) {
+
     time_since_last_spawn += delta_time;
 
     float spawn_delay = spawn_delay_func();
@@ -103,6 +105,7 @@ void ParticleEmitter::respawn_particle(Particle &particle) {
     float lifespan = lifespan_func();
     glm::vec3 velocity = initial_velocity_func();
 
-    particle = Particle(lifespan, velocity, velocity_change_func, scaling_func, rotation_func, transform);
-    particle.transform.position = transform.position;
+    // use the same id as its the "same object"
+    particle = Particle(lifespan, velocity, velocity_change_func, scaling_func, rotation_func, transform, particle.id);
+    particle.transform = particle.emitter_transform;
 }

@@ -12,7 +12,7 @@ class Particle {
   public:
     Particle(float lifespan_seconds, const glm::vec3 &initial_velocity,
              std::function<glm::vec3(float, float)> velocity_change_func, std::function<float(float)> scaling_func,
-             std::function<float(float)> rotation_func, Transform emitter_transform);
+             std::function<float(float)> rotation_func, Transform &emitter_transform, int id);
 
     void update(float delta_time, glm::mat4 world_to_clip);
 
@@ -22,6 +22,8 @@ class Particle {
 
     Transform transform;
     Transform emitter_transform;
+
+    int id;
 
   private:
     float distance_to_camera;
