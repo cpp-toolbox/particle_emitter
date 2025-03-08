@@ -12,7 +12,7 @@ class Particle {
   public:
     Particle(float lifespan_seconds, const glm::vec3 &initial_velocity,
              std::function<glm::vec3(float, float)> velocity_change_func, std::function<float(float)> scaling_func,
-             std::function<float(float)> rotation_func, Transform &emitter_transform, int id);
+             std::function<float(float)> rotation_func, int id);
 
     void update(float delta_time, glm::mat4 world_to_clip);
 
@@ -21,8 +21,6 @@ class Particle {
     bool is_alive() const;
 
     Transform transform;
-    Transform emitter_transform;
-
     int id;
 
   private:
@@ -38,36 +36,34 @@ class Particle {
 
 class ParticleEmitter {
   public:
-    Transform transform;
-
     ParticleEmitter(std::function<float()> lifespan_func, std::function<glm::vec3()> initial_velocity_func,
                     std::function<glm::vec3(float, float)> velocity_change_func,
                     std::function<float(float)> scaling_func, std::function<float(float)> rotation_func,
-                    std::function<float()> spawn_delay_func, unsigned int max_particles, Transform initial_transform);
+                    std::function<float()> spawn_delay_func, std::function<void(int)> on_particle_spawn_callback,
+                    std::function<void(int)> on_particle_death_callback);
 
     void update(float delta_time, glm::mat4 world_to_clip);
-
-    void stop_emitting_particles();
-    void resume_emitting_particles();
-
-    std::vector<Particle> get_particles_sorted_by_distance();
-    std::vector<Particle> particles;
+    std::vector<Particle> get_particles_sorted_by_distance() const;
+    Transform transform;
 
   private:
-    unsigned int max_particles;
-    unsigned int last_used_particle;
-    float time_since_last_spawn;
-    bool currently_producing_particles = true;
+    void try_to_spawn_new_particle();
+    void remove_dead_particles();
+    Particle spawn_particle();
 
+    std::vector<Particle> particles;
     std::function<float()> lifespan_func;
     std::function<glm::vec3()> initial_velocity_func;
     std::function<glm::vec3(float, float)> velocity_change_func;
     std::function<float(float)> scaling_func;
     std::function<float(float)> rotation_func;
     std::function<float()> spawn_delay_func;
+    std::function<void(int)> on_particle_spawn_callback; // takes in id of spawn particle
+    std::function<void(int)> on_particle_death_callback; // takes in id of dead particle
 
-    unsigned int find_unused_particle();
-    void respawn_particle(Particle &particle);
+    float time_since_last_spawn;
+
+    UniqueIDGenerator particle_uid_generator = UniqueIDGenerator();
 };
 
 #endif // PARTICLE_EMITTER_HPP
