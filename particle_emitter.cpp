@@ -1,18 +1,16 @@
 #include "particle_emitter.hpp"
+#include <algorithm>
 
 Particle::Particle(float lifespan_seconds, const glm::vec3 &initial_velocity,
                    std::function<glm::vec3(float, float)> velocity_change_func,
-                   std::function<float(float)> scaling_func, std::function<float(float)> rotation_func,
-                   Transform &emitter_transform, int id)
+                   std::function<float(float)> scaling_func, std::function<float(float)> rotation_func, int id)
     : lifespan_seconds(lifespan_seconds), age_seconds(0.0), velocity(initial_velocity),
-      emitter_transform(emitter_transform), character_velocity_change_function(velocity_change_func),
-      character_scaling_function(scaling_func), character_rotation_degrees_function(rotation_func),
-      transform(Transform()), id(id) {
+      character_velocity_change_function(velocity_change_func), character_scaling_function(scaling_func),
+      character_rotation_degrees_function(rotation_func), transform(Transform()), id(id) {
     transform.scale = glm::vec3(character_scaling_function(0.0f));
 }
 
 void Particle::update(float delta_time, glm::mat4 world_to_clip) {
-
     age_seconds += delta_time;
     float life_percentage = age_seconds / lifespan_seconds;
 
@@ -36,76 +34,60 @@ bool Particle::is_alive() const { return age_seconds < lifespan_seconds; }
 ParticleEmitter::ParticleEmitter(std::function<float()> lifespan_func, std::function<glm::vec3()> initial_velocity_func,
                                  std::function<glm::vec3(float, float)> velocity_change_func,
                                  std::function<float(float)> scaling_func, std::function<float(float)> rotation_func,
-                                 std::function<float()> spawn_delay_func, unsigned int max_particles,
-                                 Transform initial_transform)
+                                 std::function<float()> spawn_delay_func,
+                                 std::function<void(int)> on_particle_spawn_callback,
+                                 std::function<void(int)> on_particle_death_callback)
     : lifespan_func(lifespan_func), initial_velocity_func(initial_velocity_func),
       velocity_change_func(velocity_change_func), scaling_func(scaling_func), rotation_func(rotation_func),
-      spawn_delay_func(spawn_delay_func), max_particles(max_particles), last_used_particle(0),
-      time_since_last_spawn(0.0f) {
+      spawn_delay_func(spawn_delay_func), time_since_last_spawn(0.0f),
+      on_particle_spawn_callback(on_particle_spawn_callback), on_particle_death_callback(on_particle_death_callback) {}
 
-    transform = initial_transform;
-
-    particles.reserve(max_particles);
-    for (unsigned int i = 0; i < max_particles; ++i) {
-        particles.emplace_back(0, initial_velocity_func(), velocity_change_func, scaling_func, rotation_func, transform,
-                               UniqueIDGenerator::generate());
+void ParticleEmitter::remove_dead_particles() {
+    for (auto it = particles.begin(); it != particles.end();) {
+        if (!it->is_alive()) {
+            particle_uid_generator.reclaim_id(it->id);
+            on_particle_death_callback(it->id);
+            it = particles.erase(it); // erase returns the next iterator
+        } else {
+            ++it;
+        }
     }
 }
 
 void ParticleEmitter::update(float delta_time, glm::mat4 world_to_clip) {
-
     time_since_last_spawn += delta_time;
-
-    float spawn_delay = spawn_delay_func();
-
-    if (currently_producing_particles) {
-        if (time_since_last_spawn >= spawn_delay) {
-            unsigned int unused_particle = find_unused_particle();
-            respawn_particle(particles[unused_particle]);
-            time_since_last_spawn = 0.0f; // Reset spawn timer
-        }
-    }
+    try_to_spawn_new_particle();
+    remove_dead_particles();
 
     for (Particle &particle : particles) {
-        if (particle.is_alive()) {
-            particle.update(delta_time, world_to_clip);
-        }
+        particle.update(delta_time, world_to_clip);
     }
 }
 
-void ParticleEmitter::stop_emitting_particles() { currently_producing_particles = false; }
-void ParticleEmitter::resume_emitting_particles() { currently_producing_particles = true; }
+void ParticleEmitter::try_to_spawn_new_particle() {
+    float spawn_delay = spawn_delay_func();
+    if (time_since_last_spawn >= spawn_delay) {
 
-std::vector<Particle> ParticleEmitter::get_particles_sorted_by_distance() {
+        auto new_particle = spawn_particle();
+
+        on_particle_spawn_callback(new_particle.id);
+
+        particles.emplace_back(new_particle);
+        time_since_last_spawn = 0.0f;
+    }
+}
+
+Particle ParticleEmitter::spawn_particle() {
+    float lifespan = lifespan_func();
+    glm::vec3 velocity = initial_velocity_func();
+    Particle particle(lifespan, velocity, velocity_change_func, scaling_func, rotation_func,
+                      particle_uid_generator.get_id());
+    particle.transform.position = transform.position;
+    return particle;
+}
+
+std::vector<Particle> ParticleEmitter::get_particles_sorted_by_distance() const {
     std::vector<Particle> sorted_particles = particles;
     std::sort(sorted_particles.begin(), sorted_particles.end());
     return sorted_particles;
-}
-
-unsigned int ParticleEmitter::find_unused_particle() {
-    for (unsigned int i = last_used_particle; i < max_particles; ++i) {
-        if (!particles[i].is_alive()) {
-            last_used_particle = i;
-            return i;
-        }
-    }
-
-    for (unsigned int i = 0; i < last_used_particle; ++i) {
-        if (!particles[i].is_alive()) {
-            last_used_particle = i;
-            return i;
-        }
-    }
-
-    last_used_particle = 0;
-    return 0;
-}
-
-void ParticleEmitter::respawn_particle(Particle &particle) {
-    float lifespan = lifespan_func();
-    glm::vec3 velocity = initial_velocity_func();
-
-    // use the same id as its the "same object"
-    particle = Particle(lifespan, velocity, velocity_change_func, scaling_func, rotation_func, transform, particle.id);
-    particle.transform = particle.emitter_transform;
 }
