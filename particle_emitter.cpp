@@ -42,6 +42,15 @@ ParticleEmitter::ParticleEmitter(std::function<float()> lifespan_func, std::func
       spawn_delay_func(spawn_delay_func), time_since_last_spawn(0.0f),
       on_particle_spawn_callback(on_particle_spawn_callback), on_particle_death_callback(on_particle_death_callback) {}
 
+ParticleEmitter::~ParticleEmitter() {
+    for (auto &particle : particles) {
+        particle_uid_generator.reclaim_id(particle.id);
+        on_particle_death_callback(particle.id);
+    }
+
+    particles.clear();
+}
+
 void ParticleEmitter::remove_dead_particles() {
     for (auto it = particles.begin(); it != particles.end();) {
         if (!it->is_alive()) {

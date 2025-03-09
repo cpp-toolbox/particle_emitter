@@ -42,6 +42,8 @@ class ParticleEmitter {
                     std::function<float()> spawn_delay_func, std::function<void(int)> on_particle_spawn_callback,
                     std::function<void(int)> on_particle_death_callback);
 
+    ~ParticleEmitter();
+
     void update(float delta_time, glm::mat4 world_to_clip);
     std::vector<Particle> get_particles_sorted_by_distance() const;
     Transform transform;
