@@ -7,7 +7,7 @@ Particle::Particle(float lifespan_seconds, const glm::vec3 &initial_velocity,
     : lifespan_seconds(lifespan_seconds), age_seconds(0.0), velocity(initial_velocity),
       character_velocity_change_function(velocity_change_func), character_scaling_function(scaling_func),
       character_rotation_degrees_function(rotation_func), transform(Transform()), id(id) {
-    transform.scale = glm::vec3(character_scaling_function(0.0f));
+    transform.set_scale(glm::vec3(character_scaling_function(0.0f)));
 }
 
 void Particle::update(float delta_time, glm::mat4 world_to_clip) {
@@ -20,11 +20,11 @@ void Particle::update(float delta_time, glm::mat4 world_to_clip) {
     }
 
     velocity += character_velocity_change_function(life_percentage, delta_time);
-    transform.position += velocity * delta_time;
-    transform.scale = glm::vec3(character_scaling_function(life_percentage));
-    transform.rotation.z = character_rotation_degrees_function(life_percentage);
+    transform.add_position(velocity * delta_time);
+    transform.set_scale(glm::vec3(character_scaling_function(life_percentage)));
+    transform.set_rotation_roll(character_rotation_degrees_function(life_percentage));
 
-    distance_to_camera = (world_to_clip * glm::vec4(transform.position, 1)).z;
+    distance_to_camera = (world_to_clip * glm::vec4(transform.get_translation(), 1)).z;
 }
 
 bool Particle::operator<(const Particle &that) const { return this->distance_to_camera > that.distance_to_camera; }
@@ -92,7 +92,7 @@ Particle ParticleEmitter::spawn_particle() {
     glm::vec3 velocity = initial_velocity_func();
     Particle particle(lifespan, velocity, velocity_change_func, scaling_func, rotation_func,
                       particle_uid_generator.get_id());
-    particle.transform.position = transform.position;
+    particle.transform.set_position(transform.get_translation());
     return particle;
 }
 
