@@ -39,14 +39,15 @@ class ParticleEmitter {
     ParticleEmitter(std::function<float()> lifespan_func, std::function<glm::vec3()> initial_velocity_func,
                     std::function<glm::vec3(float, float)> velocity_change_func,
                     std::function<float(float)> scaling_func, std::function<float(float)> rotation_func,
-                    std::function<float()> spawn_delay_func, std::function<void(int)> on_particle_spawn_callback,
-                    std::function<void(int)> on_particle_death_callback);
+                    std::function<float()> spawn_delay_func, std::function<void(int, int)> on_particle_spawn_callback,
+                    std::function<void(int, int)> on_particle_death_callback, int id = 0);
 
     ~ParticleEmitter();
 
     void update(float delta_time, glm::mat4 world_to_clip);
     std::vector<Particle> get_particles_sorted_by_distance() const;
     Transform transform;
+    int id;
 
   private:
     void try_to_spawn_new_particle();
@@ -60,8 +61,8 @@ class ParticleEmitter {
     std::function<float(float)> scaling_func;
     std::function<float(float)> rotation_func;
     std::function<float()> spawn_delay_func;
-    std::function<void(int)> on_particle_spawn_callback; // takes in id of spawn particle
-    std::function<void(int)> on_particle_death_callback; // takes in id of dead particle
+    std::function<void(int, int)> on_particle_spawn_callback; // takes in id of spawn particle
+    std::function<void(int, int)> on_particle_death_callback; // takes in id of dead particle
 
     float time_since_last_spawn;
 

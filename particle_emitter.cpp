@@ -35,17 +35,18 @@ ParticleEmitter::ParticleEmitter(std::function<float()> lifespan_func, std::func
                                  std::function<glm::vec3(float, float)> velocity_change_func,
                                  std::function<float(float)> scaling_func, std::function<float(float)> rotation_func,
                                  std::function<float()> spawn_delay_func,
-                                 std::function<void(int)> on_particle_spawn_callback,
-                                 std::function<void(int)> on_particle_death_callback)
+                                 std::function<void(int, int)> on_particle_spawn_callback,
+                                 std::function<void(int, int)> on_particle_death_callback, int id)
     : lifespan_func(lifespan_func), initial_velocity_func(initial_velocity_func),
       velocity_change_func(velocity_change_func), scaling_func(scaling_func), rotation_func(rotation_func),
       spawn_delay_func(spawn_delay_func), time_since_last_spawn(0.0f),
-      on_particle_spawn_callback(on_particle_spawn_callback), on_particle_death_callback(on_particle_death_callback) {}
+      on_particle_spawn_callback(on_particle_spawn_callback), on_particle_death_callback(on_particle_death_callback),
+      id(id) {}
 
 ParticleEmitter::~ParticleEmitter() {
     for (auto &particle : particles) {
         particle_uid_generator.reclaim_id(particle.id);
-        on_particle_death_callback(particle.id);
+        on_particle_death_callback(id, particle.id);
     }
 
     particles.clear();
@@ -55,7 +56,7 @@ void ParticleEmitter::remove_dead_particles() {
     for (auto it = particles.begin(); it != particles.end();) {
         if (!it->is_alive()) {
             particle_uid_generator.reclaim_id(it->id);
-            on_particle_death_callback(it->id);
+            on_particle_death_callback(id, it->id);
             it = particles.erase(it); // erase returns the next iterator
         } else {
             ++it;
@@ -79,7 +80,7 @@ void ParticleEmitter::try_to_spawn_new_particle() {
 
         auto new_particle = spawn_particle();
 
-        on_particle_spawn_callback(new_particle.id);
+        on_particle_spawn_callback(id, new_particle.id);
 
         particles.emplace_back(new_particle);
         time_since_last_spawn = 0.0f;
