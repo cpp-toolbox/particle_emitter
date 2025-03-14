@@ -65,15 +65,22 @@ void ParticleEmitter::remove_dead_particles() {
 }
 
 void ParticleEmitter::update(float delta_time, glm::mat4 world_to_clip) {
+    // TODO: this variable is bad...
     time_since_last_spawn += delta_time;
-    try_to_spawn_new_particle();
-    remove_dead_particles();
 
-    for (Particle &particle : particles) {
-        particle.update(delta_time, world_to_clip);
+    if (rate_limiter.attempt_to_run()) {
+        try_to_spawn_new_particle();
+        remove_dead_particles();
+
+        for (Particle &particle : particles) {
+            particle.update(delta_time, world_to_clip);
+        }
+        particles_require_sorting = true;
     }
 }
 
+// TODO: this logic is bad, we need to create new particles until we use up all of our time we have availble to use.
+// aka turn the if into a while...
 void ParticleEmitter::try_to_spawn_new_particle() {
     float spawn_delay = spawn_delay_func();
     if (time_since_last_spawn >= spawn_delay) {
@@ -96,13 +103,14 @@ Particle ParticleEmitter::spawn_particle() {
     return particle;
 }
 
-std::vector<Particle> ParticleEmitter::get_particles_sorted_by_distance()  {
-	
-	if (rate_limiter.attempt_to_run()) {
-		std::vector<Particle> particles_copy = particles;
-		std::sort(particles_copy.begin(), particles_copy.end());
-		last_sorted_particles = particles_copy;
-	}
+std::vector<Particle> ParticleEmitter::get_particles_sorted_by_distance() {
+
+    if (particles_require_sorting) {
+        std::vector<Particle> particles_copy = particles;
+        std::sort(particles_copy.begin(), particles_copy.end());
+        last_sorted_particles = particles_copy;
+        particles_require_sorting = false;
+    }
 
     return last_sorted_particles;
 }

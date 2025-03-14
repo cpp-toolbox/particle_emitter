@@ -50,16 +50,17 @@ class ParticleEmitter {
     int id;
 
   private:
-  
-	// NOTE: right now the rate limiter is only being used to reduce the number of times we sort the particles, not for actually updating the positions
-	RateLimiter rate_limiter;
+    // NOTE: right now the rate limiter is only being used to reduce the number of times we sort the particles, not for
+    // actually updating the positions
+    RateLimiter rate_limiter;
 
+    bool particles_require_sorting = false;
     void try_to_spawn_new_particle();
     void remove_dead_particles();
     Particle spawn_particle();
 
     std::vector<Particle> particles;
-	std::vector<Particle> last_sorted_particles;
+    std::vector<Particle> last_sorted_particles;
     std::function<float()> lifespan_func;
     std::function<glm::vec3()> initial_velocity_func;
     std::function<glm::vec3(float, float)> velocity_change_func;
