@@ -36,12 +36,12 @@ ParticleEmitter::ParticleEmitter(std::function<float()> lifespan_func, std::func
                                  std::function<float(float)> scaling_func, std::function<float(float)> rotation_func,
                                  std::function<float()> spawn_delay_func,
                                  std::function<void(int, int)> on_particle_spawn_callback,
-                                 std::function<void(int, int)> on_particle_death_callback, int id)
+                                 std::function<void(int, int)> on_particle_death_callback, int id, double rate_limit_hz)
     : lifespan_func(lifespan_func), initial_velocity_func(initial_velocity_func),
       velocity_change_func(velocity_change_func), scaling_func(scaling_func), rotation_func(rotation_func),
       spawn_delay_func(spawn_delay_func), time_since_last_spawn(0.0f),
       on_particle_spawn_callback(on_particle_spawn_callback), on_particle_death_callback(on_particle_death_callback),
-      id(id) {}
+      id(id), rate_limiter(rate_limit_hz) {}
 
 ParticleEmitter::~ParticleEmitter() {
     for (auto &particle : particles) {
@@ -96,8 +96,13 @@ Particle ParticleEmitter::spawn_particle() {
     return particle;
 }
 
-std::vector<Particle> ParticleEmitter::get_particles_sorted_by_distance() const {
-    std::vector<Particle> sorted_particles = particles;
-    std::sort(sorted_particles.begin(), sorted_particles.end());
-    return sorted_particles;
+std::vector<Particle> ParticleEmitter::get_particles_sorted_by_distance()  {
+	
+	if (rate_limiter.attempt_to_run()) {
+		std::vector<Particle> particles_copy = particles;
+		std::sort(particles_copy.begin(), particles_copy.end());
+		last_sorted_particles = particles_copy;
+	}
+
+    return last_sorted_particles;
 }

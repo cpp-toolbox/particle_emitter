@@ -40,21 +40,26 @@ class ParticleEmitter {
                     std::function<glm::vec3(float, float)> velocity_change_func,
                     std::function<float(float)> scaling_func, std::function<float(float)> rotation_func,
                     std::function<float()> spawn_delay_func, std::function<void(int, int)> on_particle_spawn_callback,
-                    std::function<void(int, int)> on_particle_death_callback, int id = 0);
+                    std::function<void(int, int)> on_particle_death_callback, int id = 0, double rate_limit_hz = 240);
 
     ~ParticleEmitter();
 
     void update(float delta_time, glm::mat4 world_to_clip);
-    std::vector<Particle> get_particles_sorted_by_distance() const;
+    std::vector<Particle> get_particles_sorted_by_distance();
     Transform transform;
     int id;
 
   private:
+  
+	// NOTE: right now the rate limiter is only being used to reduce the number of times we sort the particles, not for actually updating the positions
+	RateLimiter rate_limiter;
+
     void try_to_spawn_new_particle();
     void remove_dead_particles();
     Particle spawn_particle();
 
     std::vector<Particle> particles;
+	std::vector<Particle> last_sorted_particles;
     std::function<float()> lifespan_func;
     std::function<glm::vec3()> initial_velocity_func;
     std::function<glm::vec3(float, float)> velocity_change_func;
