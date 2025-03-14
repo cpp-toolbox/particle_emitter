@@ -73,7 +73,7 @@ void ParticleEmitter::update(float delta_time, glm::mat4 world_to_clip) {
         remove_dead_particles();
 
         for (Particle &particle : particles) {
-            particle.update(delta_time, world_to_clip);
+            particle.update(rate_limiter.get_last_processed_time(), world_to_clip);
         }
         particles_require_sorting = true;
     }
