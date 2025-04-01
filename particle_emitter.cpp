@@ -20,7 +20,7 @@ void Particle::update(float delta_time, glm::mat4 world_to_clip) {
     }
 
     velocity += character_velocity_change_function(life_percentage, delta_time);
-    transform.add_position(velocity * delta_time);
+    transform.add_translation(velocity * delta_time);
     transform.set_scale(glm::vec3(character_scaling_function(life_percentage)));
     transform.set_rotation_roll(character_rotation_degrees_function(life_percentage));
 
@@ -99,7 +99,7 @@ Particle ParticleEmitter::spawn_particle() {
     glm::vec3 velocity = initial_velocity_func();
     Particle particle(lifespan, velocity, velocity_change_func, scaling_func, rotation_func,
                       particle_uid_generator.get_id());
-    particle.transform.set_position(transform.get_translation());
+    particle.transform.set_translation(transform.get_translation());
     return particle;
 }
 
